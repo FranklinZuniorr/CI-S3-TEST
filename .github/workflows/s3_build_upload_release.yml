@@ -246,7 +246,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
       - name: Output release URL
-        if: ${{ steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '' }} && inputs.environment_type != 'preview'
+        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && inputs.environment_type != 'preview' }}
         run: |
           DOMAIN_NAME="${DOMAIN_NAME}"
           ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
