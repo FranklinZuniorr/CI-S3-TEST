@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    uses: FranklinZuniorr/template-s3-cloudfront-ci/.github/workflows/s3_build_upload_release.yml@main
+    uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/s3_build_upload_release.yml@main
     with:
       has_semantic_release: false
       run_tests: false
