@@ -245,8 +245,8 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
-      - name: Output preview URL
-        if: ${{ steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '' }} && inputs.environment_type == 'preview'
+      - name: Output release URL
+        if: ${{ steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '' }} && inputs.environment_type != 'preview'
         run: |
           DOMAIN_NAME="${DOMAIN_NAME}"
           ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
@@ -264,35 +264,36 @@ jobs:
           DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
 
-      - name: Output release URL
+      - name: Get S3 website endpoint preview
+        if: github.event_name == 'pull_request'
+        id: get_s3_website_endpoint
+        run: |
+          BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
+          AWS_REGION="${{ secrets.AWS_REGION }}"
+      
+          WEBSITE_ENDPOINT="http://${BUCKET_NAME}.s3-website-${AWS_REGION}.amazonaws.com"
+          echo "website_endpoint=$WEBSITE_ENDPOINT" >> "$GITHUB_OUTPUT"
+        
+      - name: Output preview URL
         uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
+        env:
+          S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
           script: |
             const prNumber = context.payload.pull_request.number;
-            const prefix = `preview-pr-${prNumber}`;
-
-            const domain_name = process.env.DOMAIN_NAME;
-            const alternate_domain = process.env.ALTERNATE_DOMAIN;
-
-            const previewDomainNameUrl = `https://${domain_name}/${prefix}`;
-            const previewAlternateDomain = `https://${alternate_domain}/${prefix}`;
-
-            const isValidAlternate = alternate_domain && alternate_domain !== 'None';
-
-            const previewUrl = isValidAlternate ? previewAlternateDomain : previewDomainNameUrl;
-
+            const s3Endpoint = process.env.S3_ENDPOINT;
+      
+            const previewUrl = `${s3Endpoint}`;
+      
             await github.rest.issues.createComment({
               issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
-            ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
-            });
-        env:
-          DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
-          ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+              ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
+            });        
         
       - name: Semantic release
         if: inputs.has_semantic_release == true && inputs.environment_type != 'preview'
