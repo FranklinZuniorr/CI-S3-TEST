@@ -279,13 +279,15 @@ jobs:
         if: github.event_name == 'pull_request' && inputs.environment_type == 'preview'
         env:
           S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
+          PREVIEW_PREFIX: ${{ env.PREVIEW_PREFIX }}
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
           script: |
             const prNumber = context.payload.pull_request.number;
             const s3Endpoint = process.env.S3_ENDPOINT;
+            const previewPrefix = process.env.PREVIEW_PREFIX;
       
-            const previewUrl = `${s3Endpoint}`;
+            const previewUrl = `${s3Endpoint}/${previewPrefix}`;
       
             await github.rest.issues.createComment({
               issue_number: prNumber,
