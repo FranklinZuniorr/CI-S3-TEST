@@ -119,7 +119,19 @@ jobs:
         env:
           PROJECT_ENVS: ${{ inputs.project_build_envs }}
 
-      - name: Build project
+      - name: Build release project
+        if: inputs.environment_type != 'preview'
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          export VITE_BROWSER_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+          export PUBLIC_URL="/${{ env.PREVIEW_PREFIX }}"
+          export NEXT_PUBLIC_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+          export NG_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}/"
+          export VUE_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+          yarn build
+
+      - name: Build preview project
+        if: inputs.environment_type == 'preview'
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
           export VITE_BROWSER_ROUTER_BASENAME="/"
