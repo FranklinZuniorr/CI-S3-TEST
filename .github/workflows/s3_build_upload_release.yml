@@ -265,7 +265,7 @@ jobs:
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
 
       - name: Get S3 website endpoint preview
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && inputs.environment_type == 'preview'
         id: get_s3_website_endpoint
         run: |
           BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
@@ -276,7 +276,7 @@ jobs:
         
       - name: Output preview URL
         uses: actions/github-script@v6
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && inputs.environment_type == 'preview'
         env:
           S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
         with:
