@@ -43,6 +43,7 @@ on:
 jobs:
   cleanup:
     if: inputs.environment_type == 'clear_preview'
+    name: Clear preview
     runs-on: ubuntu-latest
     environment:
       name: stage
@@ -62,7 +63,7 @@ jobs:
 
   setup:
     if: inputs.environment_type != 'clear_preview'
-    name: preparing
+    name: Deploy to S3
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment_type == 'preview' && 'stage' || inputs.environment_type }}
