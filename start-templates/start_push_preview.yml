@@ -10,7 +10,7 @@ jobs:
     if: |
         github.event.pull_request.head.ref != 'main' &&
         github.event.pull_request.head.ref != 'stage'
-    uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/s3_build_upload_release.yml@main
+    uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
       has_semantic_release: false
       run_tests: false
