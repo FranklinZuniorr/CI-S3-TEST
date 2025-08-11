@@ -237,7 +237,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
   
       - name: Invalidate CloudFront cache (index.html ONLY)
-        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' && ${{ !fromJSON(env.IS_PREVIEW) }}
+        if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' && !fromJSON(env.IS_PREVIEW) }}
         run: |
           aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/index.html"
@@ -248,7 +248,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  
           
       - name: Invalidate CloudFront cache (ALL)
-        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'no' && ${{ !fromJSON(env.IS_PREVIEW) }}
+        if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'no' && !fromJSON(env.IS_PREVIEW) }}
         run: |
           aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
@@ -332,7 +332,7 @@ jobs:
             });        
         
       - name: Semantic release
-        if: inputs.has_semantic_release == true && ${{ !fromJSON(env.IS_PREVIEW) }}
+        if: ${{ inputs.has_semantic_release == true && !fromJSON(env.IS_PREVIEW) }}
         env:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
