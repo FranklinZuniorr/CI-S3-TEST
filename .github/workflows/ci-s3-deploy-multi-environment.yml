@@ -8,7 +8,7 @@ on:
         type: boolean
         default: true
       project_build_envs:
-        required: true
+        required: false
         type: string
       environment_type:
         required: true
@@ -36,9 +36,9 @@ on:
       S3_BUCKET_NAME:
         required: true
       CLOUDFRONT_DISTRIBUTION_ID:
-        required: true
+        required: false
       WF_GITHUB_TOKEN:
-        required: true
+        required: false
 
 jobs:
   clear_s3_preview:
