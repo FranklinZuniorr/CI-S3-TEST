@@ -1,4 +1,4 @@
-name: Build the application, upload optimized static assets to Amazon S3, and invalidate CloudFront cache.
+name: Build the application, upload to Amazon S3, and invalidate CloudFront cache.
 
 on:
   workflow_call:
