@@ -70,6 +70,7 @@ jobs:
 
     env:
       PREVIEW_PREFIX: preview-pr-${{ github.event.pull_request.number }}
+      IS_PREVIEW: ${{ inputs.environment_type == 'preview' }}
 
     steps:
       - name: Checkout
@@ -94,28 +95,28 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Commit message lint in Preview
-        if: inputs.run_lint == true && inputs.environment_type == 'preview'
+        if: inputs.run_lint == true && fromJSON(env.IS_PREVIEW)
         uses: wagoid/commitlint-github-action@v6
         with:
           token: ${{ secrets.WF_GITHUB_TOKEN }}
 
       - name: Typescript check in Preview
-        if: inputs.run_tsc == true && inputs.environment_type == 'preview'
+        if: inputs.run_tsc == true && fromJSON(env.IS_PREVIEW)
         run: yarn tsc --build
 
       - name: Test coverage in Preview
-        if: inputs.run_tests == true && inputs.environment_type == 'preview'
+        if: inputs.run_tests == true && fromJSON(env.IS_PREVIEW)
         run: yarn test:ci
 
       - name: Upload coverage report in Preview
-        if: inputs.run_tests == true && inputs.environment_type == 'preview'
+        if: inputs.run_tests == true && fromJSON(env.IS_PREVIEW)
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage
 
       - name: Comment coverage report link in Preview
-        if: github.event_name == 'pull_request' && inputs.run_tests == true && inputs.environment_type == 'preview'
+        if: github.event_name == 'pull_request' && inputs.run_tests == true && fromJSON(env.IS_PREVIEW)
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
@@ -141,7 +142,7 @@ jobs:
           PROJECT_ENVS: ${{ inputs.project_build_envs }}
 
       - name: Build release project
-        if: inputs.environment_type != 'preview'
+        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
           export VITE_BROWSER_ROUTER_BASENAME="/"
@@ -152,7 +153,7 @@ jobs:
           yarn build
 
       - name: Build preview project
-        if: inputs.environment_type == 'preview'
+        if: fromJSON(env.IS_PREVIEW)
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
           export VITE_BROWSER_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
@@ -163,7 +164,7 @@ jobs:
           yarn build
         
       - name: Upload release to S3
-        if: inputs.environment_type != 'preview'
+        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         run: |
           aws s3 sync ./build s3://$S3_BUCKET_NAME --delete \
 
@@ -182,7 +183,7 @@ jobs:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
       
       - name: Upload preview to S3
-        if: inputs.environment_type == 'preview'
+        if: fromJSON(env.IS_PREVIEW)
         run: |
           aws s3 sync ./build "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --delete \
 
@@ -201,7 +202,7 @@ jobs:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
       - name: Verify if has some invalidation with "/*" path
-        if: inputs.environment_type != 'preview'
+        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         id: check_full_invalidation
         run: |
           DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
@@ -236,7 +237,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
   
       - name: Invalidate CloudFront cache (index.html ONLY)
-        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' && inputs.environment_type != 'preview'
+        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' && ${{ !fromJSON(env.IS_PREVIEW) }}
         run: |
           aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/index.html"
@@ -247,7 +248,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  
           
       - name: Invalidate CloudFront cache (ALL)
-        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'no' && inputs.environment_type != 'preview'
+        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'no' && ${{ !fromJSON(env.IS_PREVIEW) }}
         run: |
           aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
@@ -258,7 +259,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         
       - name: Get CloudFront Domain Name and Alternate Name
-        if: inputs.environment_type != 'preview'
+        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         id: get_cf_domain
         run: |
           DOMAIN_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
@@ -279,7 +280,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
       - name: Output release URL
-        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && inputs.environment_type != 'preview' }}
+        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && !fromJSON(env.IS_PREVIEW) }}
         run: |
           DOMAIN_NAME="${DOMAIN_NAME}"
           ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
@@ -298,7 +299,7 @@ jobs:
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
 
       - name: Get S3 website endpoint preview
-        if: github.event_name == 'pull_request' && inputs.environment_type == 'preview'
+        if: github.event_name == 'pull_request' && fromJSON(env.IS_PREVIEW)
         id: get_s3_website_endpoint
         run: |
           BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
@@ -309,7 +310,7 @@ jobs:
         
       - name: Output preview URL
         uses: actions/github-script@v6
-        if: github.event_name == 'pull_request' && inputs.environment_type == 'preview'
+        if: github.event_name == 'pull_request' && fromJSON(env.IS_PREVIEW)
         env:
           S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
           PREVIEW_PREFIX: ${{ env.PREVIEW_PREFIX }}
@@ -331,7 +332,7 @@ jobs:
             });        
         
       - name: Semantic release
-        if: inputs.has_semantic_release == true && inputs.environment_type != 'preview'
+        if: inputs.has_semantic_release == true && ${{ !fromJSON(env.IS_PREVIEW) }}
         env:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
