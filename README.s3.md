@@ -271,10 +271,14 @@ Variables for your `prod` environment:
 - `project_build_envs`: Receive envs of builded Front-end project.
 - `environment_type`: Define environment, `stage`, `prod`, `preview` or `clear_preview`.
 
+## Flows
+
+### Deploy S3 preview
+
 ```mermaid
 sequenceDiagram
   participant P1 as External repository
-  participant P2 as Clear preview workflow
+  participant P2 as Preview workflow
   participant P3 as Define secrets and inputs
   participant P4 as CI S3
   participant P5 as Handle Jobs and Steps based with environment
@@ -287,3 +291,62 @@ sequenceDiagram
   P4 ->> P5: Pass secrets and variables
   P5 ->> P6: 
   P6 ->> P7: Create preview link
+
+### Clear S3 preview
+
+``m̀ermaid
+  sequenceDiagram
+  participant P1 as External repository
+  participant P2 as Clear preview workflow
+  participant P3 as Define secrets and inputs
+  participant P4 as CI S3
+  participant P5 as Handle Jobs and Steps based with environment
+  participant P6 as Clear preview at S3
+
+  P1 ->> P2: Create
+  P2 ->> P3: Define environment
+  P3 ->> P4: Call template
+  P4 ->> P5: Pass secrets and variables
+  P5 ->> P6: 
+
+### Deploy stage
+
+``m̀ermaid
+  sequenceDiagram
+  participant P1 as External repository
+  participant P2 as stage workflow
+  participant P3 as Define secrets and inputs
+  participant P4 as CI S3
+  participant P5 as Handle Jobs and Steps based with environment
+  participant P6 as Deploy to S3
+  participant P7 as Invalidate CloudFront
+  participant P8 as Expose Website updates
+
+  P1 ->> P2: Create
+  P2 ->> P3: Define environment
+  P3 ->> P4: Call template
+  P4 ->> P5: Pass secrets and variables
+  P5 ->> P6: 
+  P6 ->> P7: Clear cache
+  P7 ->> P8: 
+
+### Deploy production
+
+``m̀ermaid
+  sequenceDiagram
+  participant P1 as External repository
+  participant P2 as production workflow
+  participant P3 as Define secrets and inputs
+  participant P4 as CI S3
+  participant P5 as Handle Jobs and Steps based with environment
+  participant P6 as Deploy to S3
+  participant P7 as Invalidate CloudFront
+  participant P8 as Expose Website updates
+
+  P1 ->> P2: Create
+  P2 ->> P3: Define environment
+  P3 ->> P4: Call template
+  P4 ->> P5: Pass secrets and variables
+  P5 ->> P6: 
+  P6 ->> P7: Clear cache
+  P7 ->> P8: 
