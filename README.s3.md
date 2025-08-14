@@ -291,6 +291,7 @@ sequenceDiagram
   P4 ->> P5: Pass secrets and variables
   P5 ->> P6: 
   P6 ->> P7: Create preview link
+```
 
 ### Clear S3 preview
 
@@ -308,6 +309,7 @@ sequenceDiagram
   P3 ->> P4: Call template
   P4 ->> P5: Pass secrets and variables
   P5 ->> P6: 
+```
 
 ### Deploy stage
 
@@ -329,6 +331,7 @@ sequenceDiagram
   P5 ->> P6: 
   P6 ->> P7: Clear cache
   P7 ->> P8: 
+```
 
 ### Deploy production
 
@@ -350,3 +353,4 @@ sequenceDiagram
   P5 ->> P6: 
   P6 ->> P7: Clear cache
   P7 ->> P8: 
+```
