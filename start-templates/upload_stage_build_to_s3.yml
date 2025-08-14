@@ -11,9 +11,6 @@ jobs:
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
       has_semantic_release: false
-      run_tests: false
-      run_lint: false
-      run_tsc: false
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: stage
     secrets:

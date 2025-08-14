@@ -99,43 +99,36 @@ Avoid broken links and routing issues by ensuring the subpath used in your confi
 
 To set up the CI/CD pipeline, you need to create a `.github/workflows` folder in the root of your repository. Inside this folder, add the following workflow files:
 
-### start_clear_preview.yml
+### clear_s3_preview_subpath.yml
 
 ```
-name: PR Closed Cleanup
+name: Clear deployed preview in S3
 
 on:
   pull_request:
     types: [closed]
 
 jobs:
-  cleanup:
+  clear_s3_preview:
     if: |
       github.event.pull_request.head.ref != 'main' &&
       github.event.pull_request.head.ref != 'stage'
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
-      has_semantic_release: false
-      run_tests: false
-      run_lint: false
-      run_tsc: false
-      project_build_envs: none
       environment_type: clear_preview
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-      CLOUDFRONT_DISTRIBUTION_ID: none
-      WF_GITHUB_TOKEN: none
 ```
 
 ***
 
-### start_push_preview.yml
+### upload_build_preview_to_s3.yml
 
 ```
-name: Deploy to S3 and CloudFront preview
+name: Deploy build preview in S3
 
 on:
   pull_request:
@@ -143,13 +136,12 @@ on:
   workflow_call: {}
 
 jobs:
-  deploy:
+  deploy_build_preview_in_s3:
     if: |
         github.event.pull_request.head.ref != 'main' &&
         github.event.pull_request.head.ref != 'stage'
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
-      has_semantic_release: false
       run_tests: false
       run_lint: true
       run_tsc: true
@@ -166,10 +158,10 @@ jobs:
 
 ***
 
-### start_push_prod_release.yml
+### upload_prod_build_to_s3.yml
 
 ```
-name: Deploy to S3 and CloudFront
+name: Deploy build production in S3
 
 on:
   push:
@@ -178,13 +170,10 @@ on:
   workflow_call: {}
 
 jobs:
-  deploy:
+  deploy_build_production_in_s3:
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
       has_semantic_release: false
-      run_tests: false
-      run_lint: false
-      run_tsc: false
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: prod
     secrets:
@@ -194,15 +183,14 @@ jobs:
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
       WF_GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-
 ```
 
 ***
 
-### start_push_stage_release.yml
+### upload_stage_build_to_s3.yml
 
 ```
-name: Deploy to S3 and CloudFront
+name: Deploy build stage in S3
 
 on:
   push:
@@ -211,13 +199,10 @@ on:
   workflow_call: {}
 
 jobs:
-  deploy:
+  deploy_build_stage_in_s3:
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
       has_semantic_release: false
-      run_tests: false
-      run_lint: false
-      run_tsc: false
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: stage
     secrets:
@@ -227,7 +212,6 @@ jobs:
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
       WF_GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-
 ```
 
 ***
@@ -236,7 +220,7 @@ jobs:
 
 For the CI pipeline to function correctly, you must add the following **secrets** to your repository's "Actions" settings to each `environment`:
 
-- Should create `stage` and `prod` environments.
+- Should create `stage` and `prod` environments in GitHub repository -> Settings -> Secrets and variables -> Actions -> Manage environment secrets.
 
 #### Stage Secrets
 
@@ -264,7 +248,7 @@ Secrets for your `prod` environment:
 
 For the CI pipeline to function correctly, you must add the following **variables** to your repository's "Actions" settings to each `environment`:
 
-- Should create `stage` and `prod` environments.
+- Should create `stage` and `prod` environments in GitHub repository -> Settings -> Secrets and variables -> Actions -> Manage environment variables.
 
 #### Stage Variables
 
