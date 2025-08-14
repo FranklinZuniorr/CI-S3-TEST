@@ -294,7 +294,7 @@ sequenceDiagram
 
 ### Clear S3 preview
 
-``m̀ermaid
+```mermaid
   sequenceDiagram
   participant P1 as External repository
   participant P2 as Clear preview workflow
@@ -311,7 +311,7 @@ sequenceDiagram
 
 ### Deploy stage
 
-``m̀ermaid
+```mermaid
   sequenceDiagram
   participant P1 as External repository
   participant P2 as stage workflow
@@ -332,7 +332,7 @@ sequenceDiagram
 
 ### Deploy production
 
-``m̀ermaid
+```mermaid
   sequenceDiagram
   participant P1 as External repository
   participant P2 as production workflow
