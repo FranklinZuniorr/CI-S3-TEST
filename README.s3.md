@@ -271,6 +271,7 @@ Variables for your `prod` environment:
 - `project_build_envs`: Receive envs of builded Front-end project.
 - `environment_type`: Define environment, `stage`, `prod`, `preview` or `clear_preview`.
 
+```
 sequenceDiagram
   participant P1 as External repository
   participant P2 as Clear preview workflow
@@ -286,3 +287,4 @@ sequenceDiagram
   P4 ->> P5: Pass secrets and variables
   P5 ->> P6: 
   P6 ->> P7: Create preview link
+```
