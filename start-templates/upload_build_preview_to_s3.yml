@@ -1,4 +1,4 @@
-name: Deploy to S3 and CloudFront preview
+name: Deploy build preview in S3
 
 on:
   pull_request:
@@ -6,13 +6,12 @@ on:
   workflow_call: {}
 
 jobs:
-  deploy:
+  deploy_build_preview_in_s3:
     if: |
         github.event.pull_request.head.ref != 'main' &&
         github.event.pull_request.head.ref != 'stage'
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
-      has_semantic_release: false
       run_tests: false
       run_lint: true
       run_tsc: true

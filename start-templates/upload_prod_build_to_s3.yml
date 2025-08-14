@@ -1,4 +1,4 @@
-name: Deploy to S3 and CloudFront
+name: Deploy build production in S3
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_call: {}
 
 jobs:
-  deploy:
+  deploy_build_production_in_s3:
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci-s3-deploy-multi-environment.yml@main
     with:
       has_semantic_release: false

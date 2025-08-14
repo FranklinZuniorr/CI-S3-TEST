@@ -43,7 +43,7 @@ on:
 jobs:
   clear_s3_preview:
     if: inputs.environment_type == 'clear_preview'
-    name: Clear preview
+    name: Clear S3 build preview
     runs-on: ubuntu-latest
     environment:
       name: stage
@@ -63,7 +63,7 @@ jobs:
 
   setup_and_upload_build_to_s3:
     if: inputs.environment_type != 'clear_preview'
-    name: Deploy to S3
+    name: Deploy build to S3
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment_type == 'preview' && 'stage' || inputs.environment_type }}
