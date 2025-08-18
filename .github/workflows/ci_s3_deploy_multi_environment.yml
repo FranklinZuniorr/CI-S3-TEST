@@ -109,16 +109,26 @@ jobs:
         env:
           PROJECT_ENVS: ${{ inputs.project_build_envs }}
 
-      - name: Build project
-        if: ${{ !fromJSON(env.IS_PREVIEW) }}
+      - name: Expose envs
         run: |
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          export VITE_BROWSER_ROUTER_BASENAME="/"
-          export PUBLIC_URL="/"
-          export NEXT_PUBLIC_BASENAME="/"
-          export NG_APP_BASENAME="/"
-          export VUE_APP_BASENAME="/"
-          yarn build
+          if [ "${{ env.IS_PREVIEW }}" = "true" ]; then
+            echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+            echo "VITE_BROWSER_ROUTER_BASENAME=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
+            echo "PUBLIC_URL=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_BASENAME=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
+            echo "NG_APP_BASENAME=/${{ env.PREVIEW_PREFIX }}/" >> $GITHUB_ENV
+            echo "VUE_APP_BASENAME=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
+          else
+            echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+            echo "VITE_BROWSER_ROUTER_BASENAME=/" >> $GITHUB_ENV
+            echo "PUBLIC_URL=/" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_BASENAME=/" >> $GITHUB_ENV
+            echo "NG_APP_BASENAME=/" >> $GITHUB_ENV
+            echo "VUE_APP_BASENAME=/" >> $GITHUB_ENV
+          fi
+        
+      - name: Build project
+        run: yarn build
         
       - name: Upload to S3
         if: ${{ !fromJSON(env.IS_PREVIEW) }}
@@ -241,17 +251,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
-
-      - name: Build project preview
-        if: fromJSON(env.IS_PREVIEW)
-        run: |
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          export VITE_BROWSER_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-          export PUBLIC_URL="/${{ env.PREVIEW_PREFIX }}"
-          export NEXT_PUBLIC_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-          export NG_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}/"
-          export VUE_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-          yarn build
       
       - name: Upload to S3 preview
         if: fromJSON(env.IS_PREVIEW)
