@@ -10,8 +10,6 @@ jobs:
       github.event.pull_request.head.ref != 'main' &&
       github.event.pull_request.head.ref != 'stage'
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci_s3_clear_preview.yml@main
-    with:
-      environment_type: clear_preview
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
