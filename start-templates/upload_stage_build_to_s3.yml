@@ -20,6 +20,7 @@ jobs:
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
   publish_stage_application_and_invalidate_cloudfront_cache:
+      needs: deploy_build_stage_in_s3
       uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci_s3_publish.yml@main
       with:
         has_semantic_release: false
