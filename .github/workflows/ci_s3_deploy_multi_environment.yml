@@ -111,15 +111,15 @@ jobs:
 
       - name: Expose envs
         run: |
+          echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+          
           if [ "${{ env.IS_PREVIEW }}" = "true" ]; then
-            echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
             echo "VITE_BROWSER_ROUTER_BASENAME=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
             echo "PUBLIC_URL=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
             echo "NEXT_PUBLIC_BASENAME=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
             echo "NG_APP_BASENAME=/${{ env.PREVIEW_PREFIX }}/" >> $GITHUB_ENV
             echo "VUE_APP_BASENAME=/${{ env.PREVIEW_PREFIX }}" >> $GITHUB_ENV
           else
-            echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
             echo "VITE_BROWSER_ROUTER_BASENAME=/" >> $GITHUB_ENV
             echo "PUBLIC_URL=/" >> $GITHUB_ENV
             echo "NEXT_PUBLIC_BASENAME=/" >> $GITHUB_ENV
