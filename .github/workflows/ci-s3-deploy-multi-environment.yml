@@ -10,18 +10,6 @@ on:
         required: true
         type: string
         default: prod
-      run_tests:
-        required: false
-        type: boolean
-        default: true
-      run_lint:
-        required: false
-        type: boolean
-        default: true
-      run_tsc:
-        required: false
-        type: boolean
-        default: true
       has_semantic_release:
         required: false
         type: boolean
@@ -259,28 +247,24 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Commit message lint
-        if: inputs.run_lint == true
         uses: wagoid/commitlint-github-action@v6
         with:
           token: ${{ secrets.WF_GITHUB_TOKEN }}
 
       - name: Typescript check
-        if: inputs.run_tsc == true
         run: yarn tsc --build
 
       - name: Test coverage
-        if: inputs.run_tests == true
         run: yarn test:ci
 
       - name: Upload coverage report
-        if: inputs.run_tests == true
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage
 
       - name: Comment coverage report
-        if: github.event_name == 'pull_request' && inputs.run_tests == true
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
