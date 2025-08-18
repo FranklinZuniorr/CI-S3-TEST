@@ -12,9 +12,6 @@ jobs:
         github.event.pull_request.head.ref != 'stage'
     uses: FranklinZuniorr/CI-S3-TEST/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
-      run_tests: false
-      run_lint: true
-      run_tsc: true
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: preview
     secrets:
