@@ -219,6 +219,12 @@ jobs:
         env:
           DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+      
+      - name: Semantic release
+        if: inputs.has_semantic_release == true
+        env:
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: yarn release
 
   setup_and_upload_preview_build_to_s3:
     if: inputs.environment_type == 'preview'
