@@ -36,7 +36,7 @@ on:
         required: false
 
 env:
-  APP_PREFIX: preview-pr-${{ github.event.pull_request.number }}
+  APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   IS_PREVIEW: ${{ inputs.is_preview }}
   VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
   REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
