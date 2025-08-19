@@ -133,14 +133,14 @@ jobs:
 
           echo "Deploying to $PATH"
 
-          aws s3 sync ./build "$PATH" --delete
+          aws s3 sync ./build $PATH --delete
 
-          aws s3 cp ./build/ "$PATH" --recursive \
+          aws s3 cp ./build/ $PATH --recursive \
             --exclude "index.html" \
             --cache-control "max-age=86400, public" \
             --metadata-directive REPLACE
 
-          aws s3 cp ./build/index.html "$PATH/index.html" \
+          aws s3 cp ./build/index.html $PATH/index.html \
             --cache-control "no-cache, no-store, must-revalidate" \
             --metadata-directive REPLACE
         env:
