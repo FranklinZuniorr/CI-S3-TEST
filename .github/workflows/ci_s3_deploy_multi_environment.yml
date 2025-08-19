@@ -49,6 +49,18 @@ jobs:
       name: ${{ inputs.environment_type }}
 
     steps:
+      - name: Validate environment_type input
+        run: |
+          case "${{ inputs.environment_type }}" in
+            stage|prod)
+              echo "✅ environment_type is valid: ${{ inputs.environment_type }}"
+              ;;
+            *)
+              echo "❌ Invalid environment_type: ${{ inputs.environment_type }}"
+              exit 1
+              ;;
+          esac
+
       - name: Checkout
         uses: actions/checkout@v3
 
