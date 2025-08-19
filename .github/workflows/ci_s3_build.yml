@@ -131,8 +131,6 @@ jobs:
             PATH="s3://${S3_BUCKET_NAME}"
           fi
 
-          echo "Deploying to $PATH"
-
           aws s3 sync ./build $PATH --delete
 
           aws s3 cp ./build/ $PATH --recursive \
