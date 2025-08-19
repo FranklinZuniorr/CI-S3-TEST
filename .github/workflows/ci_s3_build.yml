@@ -124,37 +124,25 @@ jobs:
         run: yarn build
         
       - name: Upload to S3
-        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         run: |
-          aws s3 sync ./build s3://$S3_BUCKET_NAME --delete \
+          if [ "${{ env.IS_PREVIEW }}" = "true" ]; then
+            PATH="s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}"
+          else
+            PATH="s3://${S3_BUCKET_NAME}"
+          fi
 
-          aws s3 cp ./build/ s3://$S3_BUCKET_NAME --recursive \
+          echo "Deploying to $PATH"
+
+          aws s3 sync ./build "$PATH" --delete
+
+          aws s3 cp ./build/ "$PATH" --recursive \
             --exclude "index.html" \
             --cache-control "max-age=86400, public" \
             --metadata-directive REPLACE
 
-          aws s3 cp ./build/index.html s3://$S3_BUCKET_NAME/index.html \
+          aws s3 cp ./build/index.html "$PATH/index.html" \
             --cache-control "no-cache, no-store, must-revalidate" \
             --metadata-directive REPLACE
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-
-      - name: Upload preview to S3
-        if: fromJSON(env.IS_PREVIEW)
-        run: |
-            aws s3 sync ./build "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --delete \
-
-            aws s3 cp ./build/ "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --recursive \
-                --exclude "index.html" \
-                --cache-control "max-age=86400, public" \
-                --metadata-directive REPLACE
-
-            aws s3 cp ./build/index.html "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}/index.html" \
-                --cache-control "no-cache, no-store, must-revalidate" \
-                --metadata-directive REPLACE
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
