@@ -195,15 +195,16 @@ jobs:
       - name: Invalidate CloudFront cache (index.html ONLY)
         if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' }}
         run: |
+          PREFIX="/${APP_PREFIX#"/"}"
           aws cloudfront create-invalidation \
-            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "$APP_PREFIX/index.html"
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "$PREFIX/index.html"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
           APP_PREFIX: ${{ env.APP_PREFIX }}
-          
+        
       - name: Invalidate CloudFront cache (ALL)
         if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'no' }}
         run: |
