@@ -225,10 +225,15 @@ jobs:
 
           # Obtem configuração atual da distribuição
           aws cloudfront get-distribution-config --id $DIST_ID --output json > dist.json
-          ETAG=$(jq -r '.ETag' dist.json)
           CONFIG=$(jq '.DistributionConfig' dist.json)
 
-          if [ -z "$ETAG" ]; then
+          # Corrige extração do ETAG
+          ETAG=$(aws cloudfront get-distribution-config \
+            --id $DIST_ID \
+            --query 'ETag' \
+            --output text)
+
+          if [ -z "$ETAG" ] || [ "$ETAG" == "None" ]; then
             echo "❌ ETAG is empty, cannot update distribution"
             exit 1
           fi
