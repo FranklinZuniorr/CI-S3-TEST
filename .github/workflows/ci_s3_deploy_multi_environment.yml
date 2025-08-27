@@ -268,6 +268,8 @@ jobs:
 
           echo "$UPDATED_CONFIG" > dist-updated.json
 
+          echo "Update distribution..."
+
           aws cloudfront update-distribution \
             --id "$DIST_ID" \
             --distribution-config file://dist-updated.json \
