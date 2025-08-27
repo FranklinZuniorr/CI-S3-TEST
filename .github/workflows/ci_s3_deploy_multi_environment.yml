@@ -165,7 +165,7 @@ jobs:
           FUNCTION_CODE_FILE="cloudfront-functions/preview-pr.js"
           DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
 
-          # Cria o arquivo da função dinamicamente
+          # --- Cria o arquivo da função localmente ---
           mkdir -p cloudfront-functions
           cat << 'EOF' > $FUNCTION_CODE_FILE
           function handler(event) {
@@ -184,65 +184,63 @@ jobs:
           }
           EOF
 
-          # Verifica se a função já existe
-          EXISTS=$(aws cloudfront list-functions \
-            --query "FunctionList.Items[?Name=='$FUNCTION_NAME'].Name" \
-            --output text)
-
-          if [ -z "$EXISTS" ]; then
-            echo "Function não existe. Criando..."
-            aws cloudfront create-function \
-              --name $FUNCTION_NAME \
-              --function-config '{"Runtime":"cloudfront-js-1.0","Comment":"Preview PR function"}' \
-              --function-code fileb://$FUNCTION_CODE_FILE
+          # --- Obtém o status da função, se ela existir ---
+          echo "Verificando se a função '$FUNCTION_NAME' já existe..."
+          FUNCTION_DATA=$(aws cloudfront list-functions --query "FunctionList.Items[?Name=='$FUNCTION_NAME']")
+          FUNCTION_EXISTS=$(echo "$FUNCTION_DATA" | jq -e 'any') || true
+          
+          if [ "$FUNCTION_EXISTS" == "true" ]; then
+              # Extrai o ETag (necessário para a atualização)
+              ETAG=$(echo "$FUNCTION_DATA" | jq -r '.[0].FunctionMetadata.ETag')
+              
+              echo "Função existe. Atualizando código com --if-match..."
+              aws cloudfront update-function \
+                --name $FUNCTION_NAME \
+                --function-config '{"Comment":"Preview PR function","Runtime":"cloudfront-js-1.0"}' \
+                --function-code fileb://$FUNCTION_CODE_FILE \
+                --if-match "$ETAG"
           else
-            echo "Function existe. Atualizando código..."
-            aws cloudfront update-function \
-              --name $FUNCTION_NAME \
-              --function-config '{"Comment":"Preview PR function","Runtime":"cloudfront-js-1.0"}' \
-              --function-code fileb://$FUNCTION_CODE_FILE
+              echo "Função não existe. Criando..."
+              aws cloudfront create-function \
+                --name $FUNCTION_NAME \
+                --function-config '{"Runtime":"cloudfront-js-1.0","Comment":"Preview PR function"}' \
+                --function-code fileb://$FUNCTION_CODE_FILE
           fi
 
-          # Publica a função
+          # --- Publica a função e espera ela ficar LIVE ---
+          echo "Publicando a função..."
           aws cloudfront publish-function --name $FUNCTION_NAME
 
-          # Espera a função ficar LIVE
-          while true; do
-            STAGE=$(aws cloudfront list-functions \
-              --query "FunctionList.Items[?Name=='$FUNCTION_NAME'].FunctionMetadata.Stage" \
-              --output text)
-            if [ "$STAGE" == "LIVE" ]; then
-              break
-            fi
-            echo "Waiting for function to be LIVE..."
-            sleep 3
+          # Aguarda a função se tornar LIVE com um limite de 10 tentativas
+          for i in {1..10}; do
+              echo "Aguardando função ficar LIVE (Tentativa $i de 10)..."
+              sleep 3
+              STAGE=$(aws cloudfront describe-function --name $FUNCTION_NAME --query "Function.FunctionMetadata.Stage" --output text)
+              if [ "$STAGE" == "LIVE" ]; then
+                  echo "✅ Função está LIVE!"
+                  break
+              fi
+              if [ "$i" -eq 10 ]; then
+                  echo "❌ Tempo esgotado para a função ficar LIVE."
+                  exit 1
+              fi
           done
 
-          # Pega ARN da função publicada
+          # --- Atualiza a distribuição ---
+          echo "Atualizando a distribuição CloudFront..."
           FUNCTION_ARN=$(aws cloudfront list-functions \
             --query "FunctionList.Items[?Name=='$FUNCTION_NAME'].FunctionMetadata.FunctionARN" \
             --output text)
 
-          # Obtem configuração atual da distribuição
           aws cloudfront get-distribution-config --id "$DIST_ID" --output json > dist.json
-
-          # Extrai ETag direto do JSON
           ETAG=$(jq -r '.ETag' dist.json)
-          if [ -z "$ETAG" ] || [ "$ETAG" == "None" ]; then
-            echo "❌ ETAG está vazio, não é possível atualizar a distribuição"
-            exit 1
-          fi
-
-          # Extrai o DistributionConfig completo
           CONFIG=$(jq '.DistributionConfig' dist.json)
 
-          # Inicializa CacheBehaviors caso esteja vazio
           CONFIG=$(echo "$CONFIG" | jq '
             .CacheBehaviors.Items //= [] |
             .CacheBehaviors.Quantity //= 0
           ')
 
-          # Verifica se o behavior /preview-pr* existe
           EXISTS_BEHAVIOR=$(echo "$CONFIG" | jq -r '.CacheBehaviors.Items[]?.PathPattern | select(.=="/preview-pr*")')
 
           if [ -z "$EXISTS_BEHAVIOR" ]; then
@@ -276,48 +274,12 @@ jobs:
             ')
           fi
 
-          # Salva configuração atualizada
           echo "$UPDATED_CONFIG" > dist-updated.json
 
-          # Atualiza distribuição com o --if-match correto
           aws cloudfront update-distribution \
             --id "$DIST_ID" \
             --distribution-config file://dist-updated.json \
             --if-match "$ETAG"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-
-      - name: Verify if has some invalidation with "/*" path
-        id: check_full_invalidation
-        run: |
-          DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
-          
-          echo "🔍 Searching invalidations"
-          IDS=$(aws cloudfront list-invalidations \
-            --distribution-id "$DIST_ID" \
-            --query "InvalidationList.Items[].Id" \
-            --output text)
-
-          FOUND="no"
-
-          for ID in $IDS; do
-            MATCH=$(aws cloudfront get-invalidation \
-              --distribution-id "$DIST_ID" \
-              --id "$ID" \
-              --query "Invalidation.InvalidationBatch.Paths.Items" \
-              --output text | grep -Fx "/*" || true)
-
-            if [[ "$MATCH" == "/*" ]]; then
-              FOUND="yes"
-              break
-            fi
-          done
-
-          echo "✅ Invalidation founded? $FOUND"
-          echo "has_full_invalidation=$FOUND" >> "$GITHUB_OUTPUT"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
