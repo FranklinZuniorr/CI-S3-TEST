@@ -198,9 +198,9 @@ jobs:
           else
             echo "Function existe. Atualizando código..."
             aws cloudfront update-function \
-            --name $FUNCTION_NAME \
-            --function-config '{"Comment":"Preview PR function","Runtime":"cloudfront-js-1.0"}' \
-            --function-code fileb://$FUNCTION_CODE_FILE
+              --name $FUNCTION_NAME \
+              --function-config '{"Comment":"Preview PR function","Runtime":"cloudfront-js-1.0"}' \
+              --function-code fileb://$FUNCTION_CODE_FILE
           fi
 
           # Publica a função
