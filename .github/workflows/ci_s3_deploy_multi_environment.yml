@@ -190,8 +190,11 @@ jobs:
           FUNCTION_EXISTS=$(echo "$FUNCTION_DATA" | jq -e 'any') || true
           
           if [ "$FUNCTION_EXISTS" == "true" ]; then
-              # Extrai o ETag (necessário para a atualização)
-              ETAG=$(echo "$FUNCTION_DATA" | jq -r '.[0].FunctionMetadata.ETag')
+              # 1. Obtém o ETag correto usando describe-function
+              ETAG=$(aws cloudfront describe-function \
+                --name "$FUNCTION_NAME" \
+                --query "Function.FunctionMetadata.ETag" \
+                --output text)
               
               echo "Função existe. Atualizando código com --if-match..."
               aws cloudfront update-function \
