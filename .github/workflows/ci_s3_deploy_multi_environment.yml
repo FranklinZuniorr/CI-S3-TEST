@@ -163,7 +163,8 @@ jobs:
         run: |
           FUNCTION_NAME="preview-pr-function"
           FUNCTION_CODE_FILE="cloudfront-functions/preview-pr.js"
-          
+          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+
           # Cria o arquivo da função dinamicamente
           mkdir -p cloudfront-functions
           cat << 'EOF' > $FUNCTION_CODE_FILE
@@ -176,7 +177,6 @@ jobs:
 
               if (match) {
                   var prNumber = match[1];
-                  // Redireciona para o index.html dentro do subpath correto do S3
                   request.uri = "/preview-pr-" + prNumber + "/index.html";
               }
 
@@ -205,19 +205,30 @@ jobs:
           # Publica a função
           aws cloudfront publish-function --name $FUNCTION_NAME
 
-          # Adiciona/atualiza o behavior /preview-pr*
+          # Espera a função ficar LIVE
+          while true; do
+            STAGE=$(aws cloudfront list-functions \
+              --query "FunctionList.Items[?Name=='$FUNCTION_NAME'].FunctionMetadata.Stage" \
+              --output text)
+            if [ "$STAGE" == "LIVE" ]; then
+              break
+            fi
+            echo "Waiting for function to be LIVE..."
+            sleep 3
+          done
+
+          # Pega ARN da função publicada
           FUNCTION_ARN=$(aws cloudfront list-functions \
             --query "FunctionList.Items[?Name=='$FUNCTION_NAME'].FunctionMetadata.FunctionARN" \
             --output text)
-          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
 
-          # Obtem configuração atual
+          # Obtem configuração atual da distribuição
           aws cloudfront get-distribution-config --id $DIST_ID > dist.json
           ETAG=$(jq -r '.ETag' dist.json)
           CONFIG=$(jq '.DistributionConfig' dist.json)
 
           # Verifica se o behavior /preview-pr* existe
-          EXISTS_BEHAVIOR=$(echo $CONFIG | jq '.CacheBehaviors.Items[]?.PathPattern' | grep '/preview-pr*' || true)
+          EXISTS_BEHAVIOR=$(echo $CONFIG | jq -r '.CacheBehaviors.Items[]?.PathPattern | select(.=="/preview-pr*")')
 
           if [ -z "$EXISTS_BEHAVIOR" ]; then
             echo "Adicionando behavior /preview-pr*..."
@@ -252,7 +263,7 @@ jobs:
 
           echo $UPDATED_CONFIG > dist-updated.json
 
-          # Atualiza distribuição
+          # Atualiza distribuição com --if-match
           aws cloudfront update-distribution \
             --id $DIST_ID \
             --distribution-config file://dist-updated.json \
