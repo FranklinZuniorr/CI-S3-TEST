@@ -225,25 +225,24 @@ jobs:
 
           # Obtem configuração atual da distribuição
           aws cloudfront get-distribution-config --id $DIST_ID --output json > dist.json
-          CONFIG=$(jq '.DistributionConfig' dist.json)
 
-          # Corrige extração do ETAG
-          ETAG=$(aws cloudfront get-distribution-config \
-            --id $DIST_ID \
-            --query 'ETag' \
-            --output text)
+          # Extrai ETag direto do JSON
+          ETAG=$(jq -r '.ETag' dist.json)
 
           if [ -z "$ETAG" ] || [ "$ETAG" == "None" ]; then
-            echo "❌ ETAG is empty, cannot update distribution"
+            echo "❌ ETAG está vazio, não é possível atualizar a distribuição"
             exit 1
           fi
 
+          # Extrai o DistributionConfig
+          CONFIG=$(jq '.DistributionConfig' dist.json)
+
           # Verifica se o behavior /preview-pr* existe
-          EXISTS_BEHAVIOR=$(echo $CONFIG | jq -r '.CacheBehaviors.Items[]?.PathPattern | select(.=="/preview-pr*")')
+          EXISTS_BEHAVIOR=$(echo "$CONFIG" | jq -r '.CacheBehaviors.Items[]?.PathPattern | select(.=="/preview-pr*")')
 
           if [ -z "$EXISTS_BEHAVIOR" ]; then
             echo "Adicionando behavior /preview-pr*..."
-            UPDATED_CONFIG=$(echo $CONFIG | jq --arg FUNC_ARN "$FUNCTION_ARN" '
+            UPDATED_CONFIG=$(echo "$CONFIG" | jq --arg FUNC_ARN "$FUNCTION_ARN" '
               .CacheBehaviors.Items += [{
                 "PathPattern": "/preview-pr*",
                 "TargetOriginId": .Origins.Items[0].Id,
@@ -260,11 +259,11 @@ jobs:
             ')
           else
             echo "Behavior /preview-pr* existe. Atualizando FunctionARN..."
-            UPDATED_CONFIG=$(echo $CONFIG | jq --arg FUNC_ARN "$FUNCTION_ARN" '
+            UPDATED_CONFIG=$(echo "$CONFIG" | jq --arg FUNC_ARN "$FUNCTION_ARN" '
               .CacheBehaviors.Items |= map(
                 if .PathPattern == "/preview-pr*" then
                   .FunctionAssociations.Items[0].FunctionARN = $FUNC_ARN
-                  | . 
+                  | .
                 else
                   .
                 end
@@ -272,13 +271,14 @@ jobs:
             ')
           fi
 
-          echo $UPDATED_CONFIG > dist-updated.json
+          # Salva configuração atualizada
+          echo "$UPDATED_CONFIG" > dist-updated.json
 
-          # Atualiza distribuição com --if-match correto
+          # Atualiza distribuição com o --if-match correto
           aws cloudfront update-distribution \
-            --id $DIST_ID \
+            --id "$DIST_ID" \
             --distribution-config file://dist-updated.json \
-            --if-match $ETAG
+            --if-match "$ETAG"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
