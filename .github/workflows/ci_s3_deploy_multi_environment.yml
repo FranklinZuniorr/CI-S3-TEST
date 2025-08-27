@@ -224,9 +224,14 @@ jobs:
             --output text)
 
           # Obtem configuração atual da distribuição
-          aws cloudfront get-distribution-config --id $DIST_ID > dist.json
+          aws cloudfront get-distribution-config --id $DIST_ID --output json > dist.json
           ETAG=$(jq -r '.ETag' dist.json)
           CONFIG=$(jq '.DistributionConfig' dist.json)
+
+          if [ -z "$ETAG" ]; then
+            echo "❌ ETAG is empty, cannot update distribution"
+            exit 1
+          fi
 
           # Verifica se o behavior /preview-pr* existe
           EXISTS_BEHAVIOR=$(echo $CONFIG | jq -r '.CacheBehaviors.Items[]?.PathPattern | select(.=="/preview-pr*")')
@@ -264,7 +269,7 @@ jobs:
 
           echo $UPDATED_CONFIG > dist-updated.json
 
-          # Atualiza distribuição com --if-match
+          # Atualiza distribuição com --if-match correto
           aws cloudfront update-distribution \
             --id $DIST_ID \
             --distribution-config file://dist-updated.json \
