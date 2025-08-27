@@ -200,13 +200,18 @@ jobs:
           fi
 
           # --- Publica a função e espera ela ficar LIVE ---
-          echo "Publicando a função..."
+          # Recupera o ETag mais recente após a atualização
           ETAG=$(aws cloudfront describe-function \
-          --name "$FUNCTION_NAME" \
-          --query 'Function.ETag' \
-          --output text)
+            --name "$FUNCTION_NAME" \
+            --query 'Function.ETag' \
+            --output text)
 
-          aws cloudfront publish-function --name $FUNCTION_NAME --if-match "$ETAG"
+          # Publica a função
+          aws cloudfront publish-function \
+            --name "$FUNCTION_NAME" \
+            --if-match "$ETAG"
+
+          echo "Função publicada com sucesso!"
 
           # Aguarda a função se tornar LIVE com um limite de 10 tentativas
           for i in {1..10}; do
