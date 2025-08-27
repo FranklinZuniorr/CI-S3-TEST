@@ -188,26 +188,15 @@ jobs:
           echo "Verificando se a função '$FUNCTION_NAME' já existe..."
           FUNCTION_DATA=$(aws cloudfront list-functions --query "FunctionList.Items[?Name=='$FUNCTION_NAME']")
           FUNCTION_EXISTS=$(echo "$FUNCTION_DATA" | jq -e 'any') || true
-          
-          if [ "$FUNCTION_EXISTS" == "true" ]; then
-              # 1. Obtém o ETag correto usando describe-function
-              ETAG=$(aws cloudfront describe-function \
-                --name "$FUNCTION_NAME" \
-                --query "Function.FunctionMetadata.ETag" \
-                --output text)
-              
-              echo "Função existe. Atualizando código com --if-match..."
-              aws cloudfront update-function \
-                --name $FUNCTION_NAME \
-                --function-config '{"Comment":"Preview PR function","Runtime":"cloudfront-js-1.0"}' \
-                --function-code fileb://$FUNCTION_CODE_FILE \
-                --if-match "$ETAG"
+
+          if [ "$FUNCTION_EXISTS" == "false" ]; then
+            echo "Função não existe. Criando..."
+            aws cloudfront create-function \
+              --name $FUNCTION_NAME \
+              --function-config '{"Runtime":"cloudfront-js-1.0","Comment":"Preview PR function"}' \
+              --function-code fileb://$FUNCTION_CODE_FILE
           else
-              echo "Função não existe. Criando..."
-              aws cloudfront create-function \
-                --name $FUNCTION_NAME \
-                --function-config '{"Runtime":"cloudfront-js-1.0","Comment":"Preview PR function"}' \
-                --function-code fileb://$FUNCTION_CODE_FILE
+            echo "Função existe. Não é necessário criar. O script continuará para a próxima etapa."
           fi
 
           # --- Publica a função e espera ela ficar LIVE ---
