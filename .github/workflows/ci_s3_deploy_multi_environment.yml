@@ -207,7 +207,7 @@ jobs:
           for i in {1..10}; do
               echo "Aguardando função ficar LIVE (Tentativa $i de 10)..."
               sleep 3
-              STAGE=$(aws cloudfront describe-function --name $FUNCTION_NAME --query "Function.FunctionMetadata.Stage" --if-match "$ETAG" --output text)
+              STAGE=$(aws cloudfront describe-function --if-match "$ETAG" --name $FUNCTION_NAME --query "Function.FunctionMetadata.Stage" --output text)
               if [ "$STAGE" == "LIVE" ]; then
                   echo "✅ Função está LIVE!"
                   break
