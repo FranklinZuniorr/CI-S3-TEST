@@ -224,11 +224,10 @@ jobs:
             --output text)
 
           # Obtem configuração atual da distribuição
-          aws cloudfront get-distribution-config --id $DIST_ID --output json > dist.json
+          aws cloudfront get-distribution-config --id "$DIST_ID" --output json > dist.json
 
           # Extrai ETag direto do JSON
           ETAG=$(jq -r '.ETag' dist.json)
-
           if [ -z "$ETAG" ] || [ "$ETAG" == "None" ]; then
             echo "❌ ETAG está vazio, não é possível atualizar a distribuição"
             exit 1
@@ -267,52 +266,36 @@ jobs:
                 else
                   .
                 end
-              )
-            ')
-          fi
 
-          # Salva configuração atualizada
-          echo "$UPDATED_CONFIG" > dist-updated.json
 
-          # Atualiza distribuição com o --if-match correto
-          aws cloudfront update-distribution \
-            --id "$DIST_ID" \
-            --distribution-config file://dist-updated.json \
-            --if-match "$ETAG"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+            - name: Verify if has some invalidation with "/*" path
+              id: check_full_invalidation
+              run: |
+                DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
+                
+                echo "🔍 Searching invalidations"
+                IDS=$(aws cloudfront list-invalidations \
+                  --distribution-id "$DIST_ID" \
+                  --query "InvalidationList.Items[].Id" \
+                  --output text)
 
-      - name: Verify if has some invalidation with "/*" path
-        id: check_full_invalidation
-        run: |
-          DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
-          
-          echo "🔍 Searching invalidations"
-          IDS=$(aws cloudfront list-invalidations \
-            --distribution-id "$DIST_ID" \
-            --query "InvalidationList.Items[].Id" \
-            --output text)
+                FOUND="no"
 
-          FOUND="no"
+                for ID in $IDS; do
+                  MATCH=$(aws cloudfront get-invalidation \
+                    --distribution-id "$DIST_ID" \
+                    --id "$ID" \
+                    --query "Invalidation.InvalidationBatch.Paths.Items" \
+                    --output text | grep -Fx "/*" || true)
 
-          for ID in $IDS; do
-            MATCH=$(aws cloudfront get-invalidation \
-              --distribution-id "$DIST_ID" \
-              --id "$ID" \
-              --query "Invalidation.InvalidationBatch.Paths.Items" \
-              --output text | grep -Fx "/*" || true)
+                  if [[ "$MATCH" == "/*" ]]; then
+                    FOUND="yes"
+                    break
+                  fi
+                done
 
-            if [[ "$MATCH" == "/*" ]]; then
-              FOUND="yes"
-              break
-            fi
-          done
-
-          echo "✅ Invalidation founded? $FOUND"
-          echo "has_full_invalidation=$FOUND" >> "$GITHUB_OUTPUT"
+                echo "✅ Invalidation founded? $FOUND"
+                echo "has_full_invalidation=$FOUND" >> "$GITHUB_OUTPUT"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
