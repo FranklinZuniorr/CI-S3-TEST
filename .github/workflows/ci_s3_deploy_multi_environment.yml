@@ -202,9 +202,9 @@ jobs:
           # --- Publica a função e espera ela ficar LIVE ---
           echo "Publicando a função..."
           ETAG=$(aws cloudfront describe-function \
-            --name "$FUNCTION_NAME" \
-            --query "Function.FunctionMetadata.ETag" \
-            --output text)
+          --name "$FUNCTION_NAME" \
+          --query 'Function.ETag' \
+          --output text)
 
           aws cloudfront publish-function --name $FUNCTION_NAME --if-match "$ETAG"
 
