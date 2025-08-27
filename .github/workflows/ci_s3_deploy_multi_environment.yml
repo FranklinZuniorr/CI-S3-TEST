@@ -169,9 +169,17 @@ jobs:
           cat << 'EOF' > $FUNCTION_CODE_FILE
           function handler(event) {
               var request = event.request;
-              if (request.uri.startsWith("/preview-pr")) {
-                  request.uri = "/index.html";
+              var uri = request.uri;
+
+              // Captura paths como /preview-pr-45 ou /preview-pr-45/something
+              var match = uri.match(/^\/preview-pr-(\d+)(\/.*)?$/);
+
+              if (match) {
+                  var prNumber = match[1];
+                  // Redireciona para o index.html dentro do subpath correto do S3
+                  request.uri = "/preview-pr-" + prNumber + "/index.html";
               }
+
               return request;
           }
           EOF
